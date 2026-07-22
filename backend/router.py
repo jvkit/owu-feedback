@@ -35,6 +35,7 @@ async def get_profile(user: UserInfo = Depends(get_current_user)):
 
 
 @router.put("/profile", response_model=ProfileResponse)
+@router.post("/profile", response_model=ProfileResponse)
 async def update_profile(
     form: ProfileForm,
     user: UserInfo = Depends(get_current_user),
@@ -85,6 +86,7 @@ async def list_feedback(
 
 
 @router.put("/{feedback_id}", response_model=FeedbackResponse)
+@router.post("/{feedback_id}", response_model=FeedbackResponse)
 async def update_feedback(
     feedback_id: int,
     form: FeedbackUpdateForm,

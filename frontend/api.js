@@ -52,7 +52,7 @@ export async function getProfile() {
 
 export async function updateProfile(profile) {
 	return request(`${API_BASE}/profile`, {
-		method: 'PUT',
+		method: 'POST',
 		body: JSON.stringify(profile),
 	});
 }
@@ -87,7 +87,7 @@ export async function listFeedback(params = {}) {
 
 export async function updateFeedback(id, data) {
 	return request(`${API_BASE}/${id}`, {
-		method: 'PUT',
+		method: 'POST',
 		body: JSON.stringify(data),
 	});
 }
