@@ -295,10 +295,18 @@
       <button class="close" id="closeBtn" title="关闭">×</button>
     </div>
     <div class="panel-body">
-      <div class="notice">个人信息只需填写一次，之后自动填充；不填也能提交，仅不参与奖励排名。</div>
+      <div class="notice">您的个人信息仅用于奖励发放时与您联系，不会被公开或用于其他用途。</div>
       <form id="form">
         <label>账号</label>
         <input type="text" id="account" disabled />
+
+        <div class="profile-section open" id="profileSection">
+          <input id="name" placeholder="姓名" />
+          <input id="department" placeholder="部门" />
+          <input id="phone" placeholder="联系电话" />
+          <input id="email" placeholder="联系邮箱" />
+          <div class="privacy-hint">请填写真实信息，方便我们在需要时与您联系；信息严格保密，仅用于反馈跟进及奖励发放。</div>
+        </div>
 
         <label for="category">反馈项目</label>
         <select id="category" required>
@@ -331,19 +339,6 @@
         </div>
         <div class="previews" id="previews"></div>
 
-        <button type="button" class="toggle" id="toggleProfile">填写个人信息（参与奖励排名）</button>
-        <div class="profile-section" id="profileSection">
-          <input id="name" placeholder="姓名" />
-          <input id="department" placeholder="部门" />
-          <input id="phone" placeholder="联系电话" />
-          <input id="email" placeholder="联系邮箱" />
-          <div class="checkbox-row">
-            <input type="checkbox" id="joinRanking" checked />
-            <label for="joinRanking">参与奖励排名</label>
-          </div>
-          <div class="privacy-hint">您的个人信息仅用于与您联系及参与奖励排名，不会被公开或用于其他用途。</div>
-        </div>
-
         <label for="remark">备注补充</label>
         <textarea id="remark" rows="2" maxlength="500"></textarea>
 
@@ -371,7 +366,6 @@
     const backdrop = document.getElementById('backdrop');
     const closeBtn = document.getElementById('closeBtn');
     const form = document.getElementById('form');
-    const toggleProfile = document.getElementById('toggleProfile');
     const profileSection = document.getElementById('profileSection');
     const screenshotsInput = document.getElementById('screenshots');
     const fileText = document.getElementById('fileText');
@@ -425,7 +419,6 @@
         document.getElementById('department').value = profile.department || '';
         document.getElementById('phone').value = profile.phone || '';
         document.getElementById('email').value = profile.email || '';
-        document.getElementById('joinRanking').checked = Boolean(profile.join_ranking);
       } catch (e) {
         console.error('load profile failed, falling back to guest', e);
         isGuest = true;
@@ -450,12 +443,6 @@
       if (confirm('确定关闭反馈窗口吗？')) {
         setPanel(false);
       }
-    });
-
-    toggleProfile.addEventListener('click', () => {
-      profileSection.classList.toggle('open');
-      toggleProfile.textContent = profileSection.classList.contains('open')
-        ? '收起个人信息' : '填写个人信息（参与奖励排名）';
     });
 
     screenshotsInput.addEventListener('change', () => {
@@ -501,7 +488,7 @@
           profile.department = document.getElementById('department').value;
           profile.phone = document.getElementById('phone').value;
           profile.email = document.getElementById('email').value;
-          profile.join_ranking = document.getElementById('joinRanking').checked ? 1 : 0;
+          profile.join_ranking = 1;
           await updateProfile(profile);
         }
 
@@ -520,7 +507,6 @@
         previews.innerHTML = '';
         files = [];
         updateFileText();
-        profileSection.classList.remove('open');
       } catch (err) {
         console.error('[submit feedback error]', err);
         msg.className = 'msg error';
