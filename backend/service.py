@@ -127,32 +127,54 @@ class FeedbackService:
         form: FeedbackForm,
         screenshots: List,
     ) -> FeedbackResponse:
-        with get_db() as conn:
-            cur = conn.execute(
-                """
-                INSERT INTO fb_feedback
-                (account, category, type, description, remark, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
-                """,
-                (account, form.category, form.type, form.description, form.remark, _now(), _now()),
-            )
-            feedback_id = cur.lastrowid
-            uploads_dir = get_uploads_dir()
-            for screenshot in screenshots:
-                if not screenshot.filename:
-                    continue
-                ext = os.path.splitext(screenshot.filename)[1].lower()
-                safe_name = f"{uuid.uuid4().hex}{ext}"
-                file_path = os.path.join(uploads_dir, safe_name)
-                with open(file_path, "wb") as f:
-                    shutil.copyfileobj(screenshot.file, f)
-                conn.execute(
-                    "INSERT INTO fb_attachment (feedback_id, file_path, file_name) VALUES (?, ?, ?)",
-                    (feedback_id, file_path, screenshot.filename),
+        log.info(
+            "[FEEDBACK] create start account=%s category=%s type=%s description_len=%d screenshots=%d",
+            account,
+            form.category,
+            form.type,
+            len(form.description or ""),
+            len(screenshots),
+        )
+        try:
+            with get_db() as conn:
+                cur = conn.execute(
+                    """
+                    INSERT INTO fb_feedback
+                    (account, category, type, description, remark, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
+                    """,
+                    (account, form.category, form.type, form.description, form.remark, _now(), _now()),
                 )
-            conn.commit()
-            row = conn.execute("SELECT * FROM fb_feedback WHERE id = ?", (feedback_id,)).fetchone()
-            return _row_to_feedback(conn, row)
+                feedback_id = cur.lastrowid
+                uploads_dir = get_uploads_dir()
+                saved_count = 0
+                for screenshot in screenshots:
+                    if not screenshot.filename:
+                        log.warning("[FEEDBACK] screenshot with empty filename skipped")
+                        continue
+                    ext = os.path.splitext(screenshot.filename)[1].lower()
+                    safe_name = f"{uuid.uuid4().hex}{ext}"
+                    file_path = os.path.join(uploads_dir, safe_name)
+                    try:
+                        with open(file_path, "wb") as f:
+                            shutil.copyfileobj(screenshot.file, f)
+                        file_size = os.path.getsize(file_path)
+                        conn.execute(
+                            "INSERT INTO fb_attachment (feedback_id, file_path, file_name) VALUES (?, ?, ?)",
+                            (feedback_id, file_path, screenshot.filename),
+                        )
+                        saved_count += 1
+                        log.info("[FEEDBACK] screenshot saved id=%d name=%s size=%d", feedback_id, screenshot.filename, file_size)
+                    except Exception as e:
+                        log.error("[FEEDBACK] screenshot save failed id=%d name=%s: %s", feedback_id, screenshot.filename, e, exc_info=True)
+                        raise
+                conn.commit()
+                row = conn.execute("SELECT * FROM fb_feedback WHERE id = ?", (feedback_id,)).fetchone()
+                log.info("[FEEDBACK] create success id=%d account=%s saved_screenshots=%d", feedback_id, account, saved_count)
+                return _row_to_feedback(conn, row)
+        except Exception as e:
+            log.error("[FEEDBACK] create failed account=%s: %s", account, e, exc_info=True)
+            raise
 
     def get_feedback_by_id(self, feedback_id: int) -> Optional[FeedbackResponse]:
         with get_db() as conn:

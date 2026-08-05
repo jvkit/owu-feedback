@@ -7,9 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from backend.logger_config import setup_logging
 from backend.router import router
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+setup_logging()
 log = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,11 +21,10 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         start = time.time()
         log.info(
-            "[REQUEST] %s %s from %s | headers=%s",
+            "[REQUEST] %s %s from %s",
             request.method,
             request.url.path,
             request.client.host if request.client else "?",
-            dict(request.headers),
         )
         try:
             response = await call_next(request)
@@ -37,7 +37,7 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
             )
             return response
         except Exception as e:
-            log.exception("[ERROR] %s %s failed: %s", request.method, request.url.path, e)
+            log.exception("[REQUEST] %s %s failed: %s", request.method, request.url.path, e)
             raise
 
 
